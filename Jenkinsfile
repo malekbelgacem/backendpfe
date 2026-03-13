@@ -2,21 +2,10 @@ pipeline {
     agent any
 
     environment {
-        IMAGE_NAME = 'belgacemmalek2001/backendpfe:1.0'
+        IMAGE_NAME = "belgacemmalek2001/backendpfe:${BUILD_NUMBER}"
     }
 
     stages {
-        stage('Clean Workspace') {
-            steps {
-                deleteDir()
-            }
-        }
-
-        stage('Clone Repository') {
-            steps {
-                git branch: 'main', url: 'https://github.com/malekbelgacem/backendpfe.git'
-            }
-        }
 
         stage('Build Maven') {
             steps {
@@ -27,7 +16,7 @@ pipeline {
 
         stage('Build Docker Image') {
             steps {
-                sh 'docker build -t $IMAGE_NAME .'
+                sh 'docker build -t $IMAGE_NAME -t belgacemmalek2001/backendpfe:latest .'
             }
         }
 
@@ -46,6 +35,7 @@ pipeline {
         stage('Push Docker Image') {
             steps {
                 sh 'docker push $IMAGE_NAME'
+                sh 'docker push belgacemmalek2001/backendpfe:latest'
             }
         }
     }
