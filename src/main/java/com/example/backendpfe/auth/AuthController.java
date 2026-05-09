@@ -1,6 +1,7 @@
 package com.example.backendpfe.auth;
 
 import com.example.backendpfe.auth.dto.AuthResponse;
+import com.example.backendpfe.auth.dto.GoogleSigninRequest;
 import com.example.backendpfe.auth.dto.RefreshRequest;
 import com.example.backendpfe.auth.dto.SigninRequest;
 import com.example.backendpfe.auth.dto.SignupRequest;
@@ -24,6 +25,11 @@ public class AuthController {
     @PostMapping("/signin")
     public ResponseEntity<AuthResponse> signin(@Valid @RequestBody SigninRequest req) {
         return ResponseEntity.ok(authService.signin(req));
+    }
+
+    @PostMapping("/google")
+    public ResponseEntity<AuthResponse> googleSignin(@Valid @RequestBody GoogleSigninRequest req) {
+        return ResponseEntity.ok(authService.googleSignin(req));
     }
 
     @PostMapping("/refresh")

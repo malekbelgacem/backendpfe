@@ -30,48 +30,60 @@ public class JwtAuthFilter extends OncePerRequestFilter {
             FilterChain filterChain
     ) throws ServletException, IOException {
 
-        // Pour debug → à supprimer ou passer en logger plus tard
-        System.out.println("JwtAuthFilter → Path: " + request.getRequestURI());
+        String path = request.getRequestURI();
+        String method = request.getMethod();
 
-        // On NE saute PAS les routes ici → c'est déjà géré dans SecurityConfig avec .permitAll()
-        // Le filtre JWT doit juste ignorer les requêtes SANS token (ne pas planter)
-        // et ne valider que quand il y a un Bearer valide
+        System.out.println("JwtAuthFilter -> " + method + " " + path);
 
-        final String authHeader = request.getHeader("Authorization");
-
-        // Cas 1 : pas de header → on passe (important pour /signup, /signin)
-        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+        if ("OPTIONS".equalsIgnoreCase(method) || path.startsWith("/api/auth/")) {
             filterChain.doFilter(request, response);
             return;
         }
 
-        // Cas 2 : header présent mais token vide ou mal formé
+        final String authHeader = request.getHeader("Authorization");
+
+        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+            System.out.println("No Bearer token found");
+            filterChain.doFilter(request, response);
+            return;
+        }
+
         String jwt = authHeader.substring(7).trim();
+
         if (jwt.isBlank()) {
+            System.out.println("JWT is blank");
             filterChain.doFilter(request, response);
             return;
         }
 
         try {
             String username = jwtService.extractUsername(jwt);
+            System.out.println("Extracted username = " + username);
 
-            // Si username valide ET pas déjà authentifié dans le contexte
             if (username != null && SecurityContextHolder.getContext().getAuthentication() == null) {
                 UserDetails userDetails = userDetailsService.loadUserByUsername(username);
 
+                System.out.println("Loaded authorities = " + userDetails.getAuthorities());
+
                 if (jwtService.isTokenValid(jwt, userDetails)) {
-                    UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(
-                            userDetails,
-                            null,
-                            userDetails.getAuthorities()
-                    );
+                    UsernamePasswordAuthenticationToken authToken =
+                            new UsernamePasswordAuthenticationToken(
+                                    userDetails,
+                                    null,
+                                    userDetails.getAuthorities()
+                            );
+
                     authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
                     SecurityContextHolder.getContext().setAuthentication(authToken);
+
+                    System.out.println("Authentication set successfully");
+                } else {
+                    System.out.println("JWT is invalid");
                 }
             }
         } catch (Exception e) {
-            // Token invalide/expiré → on ne met rien dans le contexte → Spring Security bloquera si besoin
-            // → NE PAS renvoyer 401 ici manuellement
+            System.out.println("JWT filter error: " + e.getMessage());
+            e.printStackTrace();
         }
 
         filterChain.doFilter(request, response);

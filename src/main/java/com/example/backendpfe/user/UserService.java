@@ -1,6 +1,9 @@
 package com.example.backendpfe.user;
 
-import com.example.backendpfe.user.dto.*;
+import com.example.backendpfe.user.dto.UpdateUserRoleRequest;
+import com.example.backendpfe.user.dto.UserCreateRequest;
+import com.example.backendpfe.user.dto.UserResponse;
+import com.example.backendpfe.user.dto.UserUpdateRequest;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -19,33 +22,34 @@ public class UserService {
     private Role getOrCreateRole(RoleName roleName) {
         return roleRepository.findByRoleName(roleName)
                 .orElseGet(() -> roleRepository.save(
-                        Role.builder().roleName(roleName).build()
+                        Role.builder()
+                                .roleName(roleName)
+                                .build()
                 ));
     }
 
-    private UserResponse toResponse(User u) {
+    private UserResponse toResponse(User user) {
         return UserResponse.builder()
-                .idUser(u.getIdUser())
-                .username(u.getUsername())
-                .email(u.getEmail())
-                .isActive(u.getIsActive())
-                .role(u.getRole().getRoleName().name())
-                .adresse(u.getAdresse())
-                .latitude(u.getLatitude())
-                .longitude(u.getLongitude())
+                .idUser(user.getIdUser())
+                .username(user.getUsername())
+                .email(user.getEmail())
+                .isActive(user.getIsActive())
+                .role(user.getRole() != null ? user.getRole().getRoleName().name() : null)
+                .adresse(user.getAdresse())
+                .latitude(user.getLatitude())
+                .longitude(user.getLongitude())
                 .build();
     }
 
-    // ✅ Pagination: only not deleted
     public Page<UserResponse> getAll(int page, int size) {
         var pageable = PageRequest.of(page, size, Sort.by("idUser").ascending());
         return userRepository.findAllByIsDeletedFalse(pageable).map(this::toResponse);
     }
 
     public UserResponse getById(Long id) {
-        User u = userRepository.findByIdUserAndIsDeletedFalse(id)
+        User user = userRepository.findByIdUserAndIsDeletedFalse(id)
                 .orElseThrow(() -> new RuntimeException("User not found"));
-        return toResponse(u);
+        return toResponse(user);
     }
 
     public UserResponse create(UserCreateRequest req) {
@@ -57,9 +61,9 @@ public class UserService {
             throw new RuntimeException("Email already used");
         }
 
-        RoleName roleName = (req.getRole() != null) ? req.getRole() : RoleName.CLIENT;
+        RoleName roleName = req.getRole() != null ? req.getRole() : RoleName.CLIENT;
 
-        User u = User.builder()
+        User user = User.builder()
                 .username(req.getUsername())
                 .email(req.getEmail())
                 .password(passwordEncoder.encode(req.getPassword()))
@@ -71,82 +75,81 @@ public class UserService {
                 .longitude(req.getLongitude())
                 .build();
 
-        userRepository.save(u);
-        return toResponse(u);
+        userRepository.save(user);
+        return toResponse(user);
     }
 
     public UserResponse update(Long id, UserUpdateRequest req) {
-        User u = userRepository.findByIdUserAndIsDeletedFalse(id)
+        User user = userRepository.findByIdUserAndIsDeletedFalse(id)
                 .orElseThrow(() -> new RuntimeException("User not found"));
 
-        if (req.getUsername() != null && !req.getUsername().equals(u.getUsername())) {
+        if (req.getUsername() != null && !req.getUsername().isBlank()
+                && !req.getUsername().equals(user.getUsername())) {
             if (userRepository.existsByUsernameAndIsDeletedFalse(req.getUsername())) {
                 throw new RuntimeException("Username already used");
             }
-            u.setUsername(req.getUsername());
+            user.setUsername(req.getUsername());
         }
 
-        if (req.getEmail() != null && !req.getEmail().equals(u.getEmail())) {
+        if (req.getEmail() != null && !req.getEmail().isBlank()
+                && !req.getEmail().equals(user.getEmail())) {
             if (userRepository.existsByEmailAndIsDeletedFalse(req.getEmail())) {
                 throw new RuntimeException("Email already used");
             }
-            u.setEmail(req.getEmail());
+            user.setEmail(req.getEmail());
         }
 
         if (req.getPassword() != null && !req.getPassword().isBlank()) {
-            u.setPassword(passwordEncoder.encode(req.getPassword()));
+            user.setPassword(passwordEncoder.encode(req.getPassword()));
         }
 
         if (req.getIsActive() != null) {
-            u.setIsActive(req.getIsActive());
+            user.setIsActive(req.getIsActive());
         }
 
         if (req.getRole() != null) {
-            u.setRole(getOrCreateRole(req.getRole()));
+            user.setRole(getOrCreateRole(req.getRole()));
         }
 
         if (req.getAdresse() != null) {
-            u.setAdresse(req.getAdresse());
+            user.setAdresse(req.getAdresse());
         }
 
         if (req.getLatitude() != null) {
-            u.setLatitude(req.getLatitude());
+            user.setLatitude(req.getLatitude());
         }
 
         if (req.getLongitude() != null) {
-            u.setLongitude(req.getLongitude());
+            user.setLongitude(req.getLongitude());
         }
 
-        userRepository.save(u);
-        return toResponse(u);
+        userRepository.save(user);
+        return toResponse(user);
     }
 
-    // ✅ Soft delete (+ disable)
     public void delete(Long id) {
-        User u = userRepository.findByIdUserAndIsDeletedFalse(id)
+        User user = userRepository.findByIdUserAndIsDeletedFalse(id)
                 .orElseThrow(() -> new RuntimeException("User not found"));
 
-        u.setIsDeleted(true);
-        u.setIsActive(false);
-        userRepository.save(u);
+        user.setIsDeleted(true);
+        user.setIsActive(false);
+        userRepository.save(user);
     }
 
-    // ✅ Restore deleted user
     public UserResponse restore(Long id) {
-        User u = userRepository.findById(id)
+        User user = userRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("User not found"));
 
-        if (Boolean.FALSE.equals(u.getIsDeleted())) {
-            return toResponse(u);
+        if (Boolean.FALSE.equals(user.getIsDeleted())) {
+            return toResponse(user);
         }
 
-        u.setIsDeleted(false);
-        u.setIsActive(true);
-        userRepository.save(u);
-        return toResponse(u);
+        user.setIsDeleted(false);
+        user.setIsActive(true);
+        userRepository.save(user);
+        return toResponse(user);
     }
 
-    // ✅ SUPER_ADMIN: update only role
     public UserResponse updateUserRole(Long id, UpdateUserRoleRequest request) {
         User user = userRepository.findByIdUserAndIsDeletedFalse(id)
                 .orElseThrow(() -> new RuntimeException("User not found"));
@@ -157,11 +160,12 @@ public class UserService {
 
         Role role = roleRepository.findByRoleName(request.getRoleName())
                 .orElseGet(() -> roleRepository.save(
-                        Role.builder().roleName(request.getRoleName()).build()
+                        Role.builder()
+                                .roleName(request.getRoleName())
+                                .build()
                 ));
 
         user.setRole(role);
-
         userRepository.save(user);
         return toResponse(user);
     }

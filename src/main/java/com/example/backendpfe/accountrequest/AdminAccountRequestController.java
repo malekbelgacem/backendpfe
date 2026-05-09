@@ -32,4 +32,10 @@ public class AdminAccountRequestController {
     public ResponseEntity<AccountResponse> validate(@Valid @RequestBody AccountValidateRequest req) {
         return ResponseEntity.ok(service.validate(req));
     }
+    @GetMapping("/test-auth")
+    public ResponseEntity<String> testAuth(org.springframework.security.core.Authentication authentication) {
+        System.out.println("AUTH NAME = " + authentication.getName());
+        System.out.println("AUTHORITIES = " + authentication.getAuthorities());
+        return ResponseEntity.ok("OK");
+    }
 }

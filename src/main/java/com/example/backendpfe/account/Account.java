@@ -9,8 +9,10 @@ import java.time.Instant;
 
 @Entity
 @Table(name = "accounts")
-@Getter @Setter
-@NoArgsConstructor @AllArgsConstructor
+@Getter
+@Setter
+@NoArgsConstructor
+@AllArgsConstructor
 @Builder
 public class Account {
 
@@ -34,23 +36,22 @@ public class Account {
     @Builder.Default
     private Boolean isDeleted = false;
 
-    @Column(nullable = false)
+    @Column(nullable = false, updatable = false)
     private Instant createdAt;
 
-
-    // ✅ CLIENT (صاحب الحساب)
+    // propriétaire du compte
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "client_id", nullable = false)
     private User client;
 
-    // ✅ ANALYST المسؤول
-    @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "analyst_id", nullable = false)
+    // analyste assigné plus tard si besoin
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "analyst_id")
     private User analyst;
 
-    // ✅ AUDITOR المسؤول
-    @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "auditor_id", nullable = false)
+    // auditeur assigné plus tard si besoin
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "auditor_id")
     private User auditor;
 
     @PrePersist
