@@ -1,0 +1,25 @@
+apiVersion: apps/v1
+kind: Deployment
+
+metadata:
+  name: novabank-backend
+
+spec:
+  replicas: 1
+
+  selector:
+    matchLabels:
+      app: novabank-backend
+
+  template:
+    metadata:
+      labels:
+        app: novabank-backend
+
+    spec:
+      containers:
+        - name: novabank-backend
+          image: belgacemmalek2001/backendpfe:latest
+
+          ports:
+            - containerPort: 8080
